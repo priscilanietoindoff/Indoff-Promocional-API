@@ -1,0 +1,38 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Build
+dist/
+*.tsbuildinfo
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+lerna-debug.log*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Prisma (local dev db files, si usas sqlite)
+prisma/*.db
+prisma/*.db-journal
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Test cache
+.jest/

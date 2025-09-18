@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+//Schema de la abse de datos cada vez que se necesite hacer un cambio en la abse de datos se hace desde aqui
+//Una vez hecho el cambio las migraciones se corren para aplicar los cmabios primeor en local y se se aprueban en prod
+//Las reglas se añaden en la migracion que realices hasta abajo "init_schema" es el schema inicial de la abse de datos
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+// --- ENUMS (top-level) ---
+enum Role {
+  USER
+  ADMIN
+}
+
+enum CartStatus {
+  OPEN
+  QUOTED
+}
+
+enum QuoteStatus {
+  SUBMITTED
+}
+
+enum TokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+// --- MODELS (top-level) ---
+model Category {
+  id            String        @id @default(uuid())
+  name          String
+  slug          String        @unique
+  nameEn        String?
+  slugEn        String?       @unique
+  imageUrl      String?
+  imageAlt      String?
+  imageUrlEn    String?
+  imageAltEn    String?
+  isActive      Boolean       @default(true)
+  subcategories Subcategory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([isActive])
+}
+
+model Subcategory {
+  id         String    @id @default(uuid())
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name       String
+  slug       String
+  nameEn     String?
+  slugEn     String?
+  imageUrl   String?
+  imageAlt   String?
+  imageUrlEn String?
+  imageAltEn String?
+  isActive   Boolean   @default(true)
+  products   Product[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([categoryId, slug])
+  @@unique([categoryId, slugEn])
+  @@index([categoryId, isActive])
+}
+
+model Product {
+  id            String         @id @default(uuid())
+  subcategoryId String
+  subcategory   Subcategory    @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  name          String
+  slug          String
+  nameEn        String?
+  slugEn        String?
+  description   String?
+  descriptionEn String?
+  attributes    Json?
+  isActive      Boolean        @default(true)
+  productImages ProductImage[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  CartItem      CartItem[]
+  QuoteItem     QuoteItem[]
+
+  @@unique([subcategoryId, slug])
+  @@unique([subcategoryId, slugEn])
+  @@index([subcategoryId, isActive])
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId, sortOrder])
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  passwordHash String
+  role         Role           @default(USER)
+  isVerified   Boolean        @default(false)
+  firstName    String?
+  lastName     String?
+  carts        Cart[]
+  quotes       QuoteRequest[]
+  tokens       Token[]
+  auditLogs    AuditLog[]     @relation("UserAuditLogs")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      TokenType
+  token     String    @unique
+  consumed  Boolean   @default(false)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId, type])
+}
+
+model Cart {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       CartStatus    @default(OPEN)
+  items        CartItem[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  QuoteRequest QuoteRequest?
+
+  @@index([userId, status])
+}
+
+model CartItem {
+  id                 String   @id @default(uuid())
+  cartId             String
+  cart               Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity           Int
+  selectedAttributes Json?
+  createdAt          DateTime @default(now())
+
+  @@index([cartId])
+  @@index([productId])
+}
+
+model QuoteRequest {
+  id        String      @id @default(uuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartId    String      @unique
+  cart      Cart        @relation(fields: [cartId], references: [id], onDelete: Restrict)
+  poNumber  String?
+  notes     String?
+  status    QuoteStatus @default(SUBMITTED)
+  items     QuoteItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model QuoteItem {
+  id                 String       @id @default(uuid())
+  quoteRequestId     String
+  quoteRequest       QuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity           Int
+  attributesSnapshot Json
+  createdAt          DateTime     @default(now())
+
+  @@index([quoteRequestId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation("UserAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId, createdAt])
+}

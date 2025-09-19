@@ -1,13 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+
+  // Leer CORS_ORIGIN desde .env (pueden ser múltiples separados por coma)
+  const corsOrigins = configService.get<string>('CORS_ORIGIN')?.split(',') || [];
 
   app.enableCors({
-    origin: 'http://localhost:5173', // Vite
-    credentials: true, // necesario para enviar/recibir cookies
+    origin: corsOrigins,
+    credentials: true,
   });
 
   app.useGlobalPipes(
@@ -18,6 +23,11 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(3000);
+  const port = configService.get<number>('PORT') || 3000;
+  await app.listen(port);
+
+  // 🚀 Mensajes al arrancar
+  console.log(`Server running on http://localhost:${port}`);
+  console.log(`CORS origins allowed: ${corsOrigins.length > 0 ? corsOrigins.join(', ') : 'none'}`);
 }
 void bootstrap();

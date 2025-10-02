@@ -27,7 +27,7 @@ export class UserPrismaRepository implements UserRepository {
    * Devuelve la Entity de dominio o null si no existe.
    */
   async findByEmail(email: string): Promise<User | null> {
-    // findUnique porque email está @unique en tu schema.prisma
+    // findUnique porque email está @unique en schema.prisma
     const row = await this.prisma.user.findUnique({
       where: { email },
       select: userArgs.select, // Trae SOLO lo necesario y queda tipado como UserRow
@@ -35,5 +35,33 @@ export class UserPrismaRepository implements UserRepository {
 
     return row ? mapUserRowToEntity(row as UserRow) : null;
   }
-}
 
+  async create(data: { 
+    email: string; 
+    passwordHash: string; 
+    firstName?: string | null; 
+    lastName?: string | null; 
+    role?: 'USER' | 'ADMIN'; 
+    isVerified?: boolean; 
+}): Promise<User> {
+    const row = await this.prisma.user.create({
+        data: {
+            email: data.email,
+            passwordHash: data.passwordHash,
+            firstName: data.firstName ?? null,
+            lastName: data.lastName ?? null,
+            role: data.role ?? 'USER',
+            isVerified: data.isVerified ?? false,
+        },
+        select: userArgs.select, //Traer solo lo necesario y tipado
+    });
+    return mapUserRowToEntity(row as UserRow);
+  }
+
+  async markVerified(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isVerified: true },
+    });
+  }
+}

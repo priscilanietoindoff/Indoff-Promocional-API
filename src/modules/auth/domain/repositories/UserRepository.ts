@@ -6,6 +6,18 @@ import type { User } from '../entities/User';
  */
 export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
+
+  //Crear nuevo usuario por defecto con role de USER y isVerified false
+  create(data: {
+    email: string;
+    passwordHash: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    role?: 'USER'|'ADMIN';
+    isVerified?: boolean;
+  }): Promise<User>;
+
+  markVerified(userId: string): Promise<void>;
 }
 
 /**

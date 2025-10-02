@@ -56,16 +56,12 @@ export class Login {
     }
 
     // 3) (Opcional) Reglas mínimas (descomentar si decides aplicarlas)
-    // if (!user.isVerified) {
-    //   throw new Error('USER_NOT_VERIFIED');
-    // }
+    if (!user.isVerified) {
+      throw new Error('USER_NOT_VERIFIED');
+    }
 
     // 4) Firmar access token
-    const payload = { sub: user.id, role: user.role };
-    const accessToken = await this.tokens.signAccess(
-      payload,
-      this.accessTtlSeconds,
-    );
+    const accessToken = await this.tokens.generateAccessToken(user);
 
     // 5) Respuesta DTO
     return {

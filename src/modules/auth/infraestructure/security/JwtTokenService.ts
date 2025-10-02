@@ -1,21 +1,28 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { type AccessTokenPayload, type TokenService } from '../../application/contracts/TokenService';
-import * as jwt from 'jsonwebtoken';
+import { User } from '../../domain/entities/User';
 
 @Injectable()
 export class JwtTokenService implements TokenService {
-  private readonly secret = process.env.JWT_ACCESS_SECRET!;
-  // Nota: el TTL lo define el caso de uso (Login) y llega como ttlSeconds
+  constructor(private readonly jwt: JwtService) {}
 
-  async signAccess(payload: AccessTokenPayload, ttlSeconds: number): Promise<string> {
-    // Firmamos HS256 con expiración corta. iat/exp los calcula jsonwebtoken.
-    return new Promise<string>((resolve, reject) => {
-      jwt.sign(
-        payload,
-        this.secret,
-        { algorithm: 'HS256', expiresIn: ttlSeconds },
-        (err, token) => (err || !token ? reject(err) : resolve(token))
-      );
+  async generateAccessToken(user: User): Promise<string> {
+    const payload: AccessTokenPayload = {
+      sub: user.id,
+      role: user.role,
+      email: user.email, // 👈 ahora incluido en el token
+    };
+
+    return this.jwt.sign(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
+    });
+  }
+
+  async verifyAccessToken(token: string): Promise<AccessTokenPayload> {
+    return this.jwt.verify(token, {
+      secret: process.env.JWT_ACCESS_SECRET,
     });
   }
 }

@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 
-type JwtPayload = { sub: string; role: 'USER' | 'ADMIN'; iat?: number; exp?: number };
+type JwtPayload = { sub: string; role: 'USER' | 'ADMIN'; email: string; iat?: number; exp?: number };
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -15,7 +15,7 @@ export class JwtAuthGuard implements CanActivate {
     const token = header.slice('Bearer '.length).trim();
     try {
       const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as JwtPayload;
-      req.user = { sub: payload.sub, role: payload.role, iat: payload.iat, exp: payload.exp };
+      req.user = { sub: payload.sub, role: payload.role, email: payload.email, iat: payload.iat, exp: payload.exp };
       return true;
     } catch (e: any) {
       // jwt expired, invalid signature, etc.

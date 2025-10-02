@@ -3,7 +3,8 @@
  * La implementación concreta puede ser bcrypt o argon2 (en Infrastructure).
  */
 export interface PasswordHasher {
-  compare(plain: string, hash: string): Promise<boolean>;
+    hash(plain: string): Promise<string>;
+    compare(plain: string, hash: string): Promise<boolean>;
 }
 
 /**
